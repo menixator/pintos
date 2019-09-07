@@ -148,6 +148,17 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 
+  // https://web.stanford.edu/~ouster/cgi-bin/cs140-spring18/pintos/pintos_3.html#SEC32
+  // Instructs to set the EAX to EIP, and then sets EAX for 0xffffffff
+  // If it's caused by the kernel, set %eax to 0xffffffff and and puts
+  // its former value into eip
+  if(!user) {
+    //printf("Kernel page fault!\n");
+    f->eip = f->eax;
+    f->eax = 0xffffffff;
+    return;
+  }
+
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
      which fault_addr refers. */
