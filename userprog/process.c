@@ -77,7 +77,7 @@ void retrieve_filename(const char *search_space, char *filename) {
   // Loop through the search space while the character is not a NUL character
   // or a space within the limits of the MAX_FILE_SIZE definition
   while (i < MAX_FILE_SIZE - 1 &&
-         (search_space[i] != '\0' || search_space[i] != ' ')) {
+         (search_space[i] != '\0' && search_space[i] != ' ')) {
     filename[i] = search_space[i];
     i++;
   }
