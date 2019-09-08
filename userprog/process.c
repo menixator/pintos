@@ -238,13 +238,18 @@ static bool load_segment(struct file *file, off_t ofs, uint8_t *upage,
    Stores the executable's entry point into *EIP
    and its initial stack pointer into *ESP.
    Returns true if successful, false otherwise. */
-bool load(const char *file_name, void (**eip)(void), void **esp) {
+bool load(const char *invocation, void (**eip)(void), void **esp) {
   struct thread *t = thread_current();
   struct Elf32_Ehdr ehdr;
   struct file *file = NULL;
   off_t file_ofs;
   bool success = false;
   int i;
+
+  char filename[MAX_FILE_SIZE];
+
+  // Retrieve the filename
+  retrieve_filename(invocation, filename);
 
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create();
@@ -253,10 +258,10 @@ bool load(const char *file_name, void (**eip)(void), void **esp) {
   process_activate();
 
   /* Open executable file. */
-  file = filesys_open(file_name);
+  file = filesys_open(filename);
 
   if (file == NULL) {
-    printf("load: %s: open failed\n", file_name);
+    printf("load: %s: open failed\n", filename);
     goto done;
   }
 
@@ -265,7 +270,7 @@ bool load(const char *file_name, void (**eip)(void), void **esp) {
       memcmp(ehdr.e_ident, "\177ELF\1\1\1", 7) || ehdr.e_type != 2 ||
       ehdr.e_machine != 3 || ehdr.e_version != 1 ||
       ehdr.e_phentsize != sizeof(struct Elf32_Phdr) || ehdr.e_phnum > 1024) {
-    printf("load: %s: error loading executable\n", file_name);
+    printf("load: %s: error loading executable\n", filename);
     goto done;
   }
 
