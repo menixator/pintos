@@ -18,34 +18,71 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MAX_FILE_SIZE 32
+
 static thread_func start_process NO_RETURN;
 static bool load(const char *cmdline, void (**eip)(void), void **esp);
+
+void retrieve_filename(const char *search_space, char *filename);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
    thread id, or TID_ERROR if the thread cannot be created. */
-tid_t process_execute(const char *file_name) {
-  char *fn_copy;
+tid_t process_execute(const char *invocation_) {
+
+  char *invocation;
   tid_t tid;
+
+  // Variable holding the filename The actual length of the filename will be
+  // MAX_FILE_SIZE-1 to allow a NULL character.
+  char filename[MAX_FILE_SIZE];
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
-  fn_copy = palloc_get_page(0);
-  if (fn_copy == NULL)
+  invocation = palloc_get_page(0);
+  if (invocation == NULL)
     return TID_ERROR;
-  strlcpy(fn_copy, file_name, PGSIZE);
+
+  // Copy the entire invocation into the newly acquired page.
+  strlcpy(invocation, invocation_, PGSIZE);
+
+  // Get the filename from the invocation.
+  // This will only be used to label the thread within thread_create.
+  retrieve_filename(invocation_, filename);
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create(file_name, PRI_DEFAULT, start_process, fn_copy);
+  // start_process will be called with invocation
+  // as start_process(invocation)
+  tid = thread_create(filename, PRI_DEFAULT, start_process, invocation);
 
   if (tid == TID_ERROR)
-    palloc_free_page(fn_copy);
+    palloc_free_page(invocation);
   return tid;
 }
 
-/* A thread function that loads a user process and starts it
-   running. */
+// Retrieves the first token delimited with a space from a string.
+// If no space is found, MAX_FILE_SIZE-1 characters are written to the location
+// pointed to by filename. A NUL(\0) character always follows the data that is
+// written.
+void retrieve_filename(const char *search_space, char *filename) {
+  size_t i = 0;
+
+  // Loop through the search space while the character is not a NUL character
+  // or a space within the limits of the MAX_FILE_SIZE definition
+  while (i < MAX_FILE_SIZE - 1 &&
+         (search_space[i] != '\0' || search_space[i] != ' ')) {
+    filename[i] = search_space[i];
+    i++;
+  }
+  // Write a NUL character to signify that the string has ended.
+  filename[i] = '\0';
+}
+
+/*
+  A thread function that loads a user process and starts it running.  This
+  function gets called in the context of the running thread.
+*/
 static void start_process(void *file_name_) {
   char *file_name = file_name_;
   struct intr_frame if_;
