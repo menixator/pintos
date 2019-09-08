@@ -23,7 +23,13 @@
 static thread_func start_process NO_RETURN;
 static bool load(const char *cmdline, void (**eip)(void), void **esp);
 
+size_t sanitized_write(char *src_start, char *src_end, char **esp);
+
 void retrieve_filename(const char *search_space, char *filename);
+// setup_arguments takes a double pointer due to the fact that the stack
+// pointer itself will need to be modified along with the data that it is
+// pointing to.
+static bool setup_arguments(void **esp, char *invocation);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -77,6 +83,89 @@ void retrieve_filename(const char *search_space, char *filename) {
   }
   // Write a NUL character to signify that the string has ended.
   filename[i] = '\0';
+}
+
+static bool setup_arguments(void **esp, char *invocation) {
+  // TODO: maybe subtract one from esp?
+  size_t argc = sanitized_write(invocation, invocation + strlen(invocation),
+                                (char **)esp);
+
+  char *arg_start = *esp;
+  // Now lets align the stack pointer to a 4 byte boundary
+  *esp -= ((uint32_t)*esp) % 4;
+
+  // Decrement stack to house the required amount of pointers
+  *esp -= (argc + 1) * sizeof(char *);
+
+  char *last_pos = arg_start;
+  // argv[argc] = 0
+  size_t argv_written = 0;
+  while (argv_written < argc) {
+    // argv[argc]=0
+    if (argv_written + 1 >= argc) {
+      **((char ***)esp + (argv_written * sizeof(char *))) = 0;
+      break;
+    }
+
+    if (*last_pos == '\0') {
+      last_pos++;
+      continue;
+    }
+    **((char ***)esp + (argv_written * sizeof(char *))) = last_pos;
+    argv_written++;
+
+    last_pos += strlen(last_pos);
+  }
+  *esp -= sizeof(int);
+  **((int **)esp) = argc;
+
+  *esp -= sizeof(uint32_t);
+  **((uint32_t **)esp) = 0;
+  return true;
+}
+
+// sanitizes an invocation to not have double spaces
+size_t sanitized_write(char *src_start, char *src_end, char **esp) {
+
+  bool saw_space = false;
+  size_t count = 0;
+  size_t i;
+
+  // Set the last character to NUL
+  **esp = '\0';
+  // Decrement
+  (*esp)--;
+
+  // Decrement src_end if it is pointing to the NUL character
+  if (*src_end == '\0') {
+    src_end--;
+  }
+
+  bool written = false;
+  for (; src_end >= src_start; src_end--) {
+    if (saw_space && (*src_end == ' ')) {
+      continue;
+    }
+
+    saw_space = *src_end == ' ';
+    if (!written) {
+      written = true;
+    }
+    if (saw_space) {
+      **esp = '\0';
+    } else {
+      **esp = *src_end;
+    }
+    (*esp)--;
+    if (saw_space) {
+      count++;
+    }
+  }
+
+  if (written) {
+    count++;
+  }
+  return count;
 }
 
 /*
@@ -328,6 +417,10 @@ bool load(const char *invocation, void (**eip)(void), void **esp) {
 
   /* Set up stack. */
   if (!setup_stack(esp))
+    goto done;
+
+  // Pains me to use labels, but here we go.
+  if (!setup_arguments(esp))
     goto done;
 
   /* Start address. */
