@@ -86,7 +86,9 @@ void retrieve_filename(const char *search_space, char *filename) {
 }
 
 static bool setup_arguments(void **esp, char *invocation) {
-  // TODO: maybe subtract one from esp?
+  // Subtract one byte
+  *esp-=1;
+
   size_t argc = sanitized_write(invocation, invocation + strlen(invocation),
                                 (char **)esp);
 
