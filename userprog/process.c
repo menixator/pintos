@@ -420,7 +420,7 @@ bool load(const char *invocation, void (**eip)(void), void **esp) {
     goto done;
 
   // Pains me to use labels, but here we go.
-  if (!setup_arguments(esp))
+  if (!setup_arguments(esp, (const char*)invocation))
     goto done;
 
   /* Start address. */
