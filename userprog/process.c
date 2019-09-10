@@ -452,7 +452,7 @@ bool load(const char *invocation, void (**eip)(void), void **esp) {
     goto done;
 
   char *inv_copy = palloc_get_page(0);
-  memcmp(inv_copy, invocation, strlen(inv_copy));
+  memcmp(inv_copy, invocation, strlen(invocation));
   // Pains me to use labels, but here we go.
   bool stack_init_success = prepare_stack(esp, inv_copy);
   palloc_free_page(inv_copy);
