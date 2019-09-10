@@ -25,6 +25,7 @@ static bool load(const char *cmdline, void (**eip)(void), void **esp);
 
 // Helpers
 size_t ja_init(char *src);
+void ja_print(char *ja, size_t length);
 size_t ja_size(char *ja, size_t length);
 bool prepare_stack(void **esp, char *invocation);
 void retrieve_filename(const char *search_space, char *filename);
@@ -126,6 +127,17 @@ size_t ja_init(char *src) {
 
   // Returns the number of strings.
   return argc;
+}
+
+// Prints every item in a jagged array
+void ja_print(char *ja, size_t length) {
+  size_t size = 0;
+
+  for (size_t i = 0; i < length; i++) {
+    // +1 to account for null characters.
+    printf("  [%d] = '%s'\n", i, ja + size);
+    size += strlen(ja + size) + 1;
+  }
 }
 
 // Gets the full length of a uneven sized array.
