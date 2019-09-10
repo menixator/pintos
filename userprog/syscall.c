@@ -38,12 +38,19 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
   // exit syscall
   case SYS_EXIT:{
       sys_exit(load_param(frame, ARG_0));
-      break;
+      return;
     }
   case SYS_WRITE: {
-      frame->eax = sys_write((int) load_param(frame, ARG_0), (const void*) load_param(frame, ARG_1), (unsigned int) load_param(frame, ARG_2));
+      frame->eax = sys_write(
+          (int) load_param(frame, ARG_0),
+          (const void*) load_param(frame, ARG_1),
+          (unsigned int) load_param(frame, ARG_2)
+      );
+      return;
     }
   }
+  // TODO: remove
+  printf("error: you did not return within your case statement up there. There is exiting now\n");
   thread_exit();
 }
 
