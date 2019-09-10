@@ -50,7 +50,7 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
     }
   }
   // TODO: remove
-  printf("error: you did not return within your case statement up there. There is exiting now\n");
+  printf("error: you did not return within your case statement up there. Thread is exiting now\n");
   thread_exit();
 }
 
