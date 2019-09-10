@@ -58,7 +58,7 @@ static uint32_t load_param(struct intr_frame *frame, int offset) {
   if (get_user(frame->esp + offset) == -1) {
     sys_exit(-1);
   }
-  return *((uint32_t *)frame->esp + offset);
+  return *(((uint32_t *)(frame->esp+offset)));
 }
 
 
