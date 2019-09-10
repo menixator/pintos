@@ -23,13 +23,11 @@
 static thread_func start_process NO_RETURN;
 static bool load(const char *cmdline, void (**eip)(void), void **esp);
 
-size_t sanitized_write(char *src_start, char *src_end, char **esp);
-
+// Helpers
+size_t ja_init(char *src);
+size_t ja_size(char *ja, size_t length);
+bool prepare_stack(void **esp, char *invocation);
 void retrieve_filename(const char *search_space, char *filename);
-// setup_arguments takes a double pointer due to the fact that the stack
-// pointer itself will need to be modified along with the data that it is
-// pointing to.
-static bool setup_arguments(void **esp, char *invocation);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -50,6 +48,7 @@ tid_t process_execute(const char *invocation_) {
   if (invocation == NULL)
     return TID_ERROR;
 
+  // TODO: sanitize here
   // Copy the entire invocation into the newly acquired page.
   strlcpy(invocation, invocation_, PGSIZE);
 
@@ -85,90 +84,109 @@ void retrieve_filename(const char *search_space, char *filename) {
   filename[i] = '\0';
 }
 
-static bool setup_arguments(void **esp, char *invocation) {
-  // Subtract one byte
-  *esp-=1;
+#define NUL_CHR '\0'
 
-  size_t argc = sanitized_write(invocation, invocation + strlen(invocation),
-                                (char **)esp);
+// Reads a string, and converts any spaces into nul characters
+size_t ja_init(char *src) {
+  // The number of arguments
+  char *dest = src;
 
-  char *arg_start = *esp;
-  // Now lets align the stack pointer to a 4 byte boundary
-  *esp -= ((uint32_t)*esp) % 4;
+  size_t argc = 0;
+  bool unbound = false;
 
-  // Decrement stack to house the required amount of pointers
-  *esp -= (argc + 1) * sizeof(char *);
-
-  char *last_pos = arg_start;
-  // argv[argc] = 0
-  size_t argv_written = 0;
-  while (argv_written < argc) {
-    // argv[argc]=0
-    if (argv_written + 1 >= argc) {
-      **((char ***)esp + (argv_written * sizeof(char *))) = 0;
-      break;
-    }
-
-    if (*last_pos == '\0') {
-      last_pos++;
+  // Loop over every character until a null has been seen, while overwriting
+  // any spaces with NUL characters. Any number of spaces following another
+  // space is ignored.
+  for (char *seek = src; *seek != NUL_CHR; seek++) {
+    char chr = *seek;
+    if (chr == ' ' && unbound) {
+      *dest = NUL_CHR;
+      dest++;
+      unbound = false;
+      argc++;
       continue;
     }
-    **((char ***)esp + (argv_written * sizeof(char *))) = last_pos;
-    argv_written++;
 
-    last_pos += strlen(last_pos);
+    if (chr != ' ') {
+      // increment the number of characters written.
+      *dest = chr;
+      dest++;
+      unbound = true;
+    }
   }
+
+  // The last character is very less likely to be a space.
+  // If the last character is not a space, then write a NUL
+  // character
+  if (unbound) {
+    argc++;
+    *dest = NUL_CHR;
+    unbound = false;
+  }
+
+  // Returns the number of strings.
+  return argc;
+}
+
+// Gets the full length of a uneven sized array.
+size_t ja_size(char *ja, size_t length) {
+  size_t size = 0;
+
+  for (size_t i = 0; i < length; i++) {
+    // +1 to account for null characters.
+    size += strlen(ja + size) + 1;
+  }
+  return size;
+}
+
+bool prepare_stack(void **esp, char *invocation) {
+  size_t arg_count = ja_init(invocation);
+
+  // The size of the arguments
+  size_t argv_size = ja_size(invocation, arg_count);
+
+  // Subtract the number of bytes from stack to make space for the arguments on
+  // top.
+  *esp -= argv_size;
+
+  // Store the location of argv
+  char *argv = *esp;
+
+  memcpy(*esp, invocation, argv_size);
+
+  // Now lets align stack to a 4 byte boundary.
+  size_t align_offset = ((size_t)*esp) % 4;
+  *esp -= align_offset;
+  memset(*esp, 0, align_offset);
+
+  // Now lets make sure that argv[argv] returns 0
+  // We are going to write an integer.
+  *esp -= sizeof(char *);
+
+  // Store a zero so that argv[argc] = 0
+  memset(*esp, 0, sizeof(char *));
+
+  // We are adding arg_count number of character pointers
+  *esp -= sizeof(char *) * arg_count;
+
+  // The location after getting enough space to write the arguments.
+
+  char *readseek = argv;
+
+  for (size_t i = 0; i < arg_count; i++) {
+    *((char **)((*esp) + (i * sizeof(char *)))) = readseek;
+    readseek += strlen(argv) + 1;
+  }
+
+  // now add argc
   *esp -= sizeof(int);
-  **((int **)esp) = argc;
+  **((int **)esp) = (int)arg_count;
 
-  *esp -= sizeof(uint32_t);
-  **((uint32_t **)esp) = 0;
+  // Add the return address.
+  *esp -= sizeof(void *);
+  memset(*esp, 0, sizeof(void *));
   return true;
-}
-
-// sanitizes an invocation to not have double spaces
-size_t sanitized_write(char *src_start, char *src_end, char **esp) {
-
-  bool saw_space = false;
-  size_t count = 0;
-  size_t i;
-
-  // Set the last character to NUL
-  **esp = '\0';
-  // Decrement
-  (*esp)--;
-
-  // Decrement src_end if it is pointing to the NUL character
-  if (*src_end == '\0') {
-    src_end--;
-  }
-
-  bool written = false;
-  for (; src_end >= src_start; src_end--) {
-    if (saw_space && (*src_end == ' ')) {
-      continue;
-    }
-
-    saw_space = *src_end == ' ';
-    if (!written) {
-      written = true;
-    }
-    if (saw_space) {
-      **esp = '\0';
-    } else {
-      **esp = *src_end;
-    }
-    (*esp)--;
-    if (saw_space) {
-      count++;
-    }
-  }
-
-  if (written) {
-    count++;
-  }
-  return count;
-}
+};
 
 /*
   A thread function that loads a user process and starts it running.  This
@@ -421,9 +439,14 @@ bool load(const char *invocation, void (**eip)(void), void **esp) {
   if (!setup_stack(esp))
     goto done;
 
+  char *inv_copy = palloc_get_page(0);
+  memcmp(inv_copy, invocation, strlen(inv_copy));
   // Pains me to use labels, but here we go.
-  if (!setup_arguments(esp, (const char*)invocation))
+  bool stack_init_success = prepare_stack(esp, inv_copy);
+  palloc_free_page(inv_copy);
+  if (!stack_init_success) {
     goto done;
+  }
 
   /* Start address. */
   *eip = (void (*)(void))ehdr.e_entry;
