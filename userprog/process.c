@@ -182,13 +182,18 @@ bool prepare_stack(void **esp, char *invocation) {
   *esp -= sizeof(char *) * arg_count;
 
   // The location after getting enough space to write the arguments.
-
   char *readseek = argv;
+  // store the address where argv should start writing.
+  char **writeseek = (char **)*esp;
 
   for (size_t i = 0; i < arg_count; i++) {
-    *((char **)((*esp) + (i * sizeof(char *)))) = readseek;
+    *writeseek = readseek;
+    (writeseek)++;
     readseek += strlen(readseek) + 1;
   }
+  *esp -= sizeof(char *);
+
+  *((char **)*esp) = *esp + sizeof(char *);
 
   // now add argc
   *esp -= sizeof(int);
