@@ -62,6 +62,7 @@ int sys_write(int fd, const void* buffer, unsigned int length){
     putbuf((const char*)buffer, length);
     return length;
   }
+  return 0;
 }
 
 // Respond to an exit syscall
