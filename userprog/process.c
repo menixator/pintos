@@ -187,7 +187,7 @@ bool prepare_stack(void **esp, char *invocation) {
 
   for (size_t i = 0; i < arg_count; i++) {
     *((char **)((*esp) + (i * sizeof(char *)))) = readseek;
-    readseek += strlen(argv) + 1;
+    readseek += strlen(readseek) + 1;
   }
 
   // now add argc
