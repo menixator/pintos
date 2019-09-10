@@ -16,6 +16,7 @@ static void syscall_handler(struct intr_frame *);
 // Implemented syscalls
 // Exits a program with a provided status.
 void sys_exit(int status);
+int sys_write(int fd, const void* buffer, unsigned int length);
 
 // Implemented syscalls-end
 
@@ -35,8 +36,13 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
   uint32_t syscall_variant = load_param(frame, SYSCALL_VARIANT);
   switch (syscall_variant) {
   // exit syscall
-  case SYS_EXIT:
-    sys_exit(load_param(frame, ARG_0));
+  case SYS_EXIT:{
+      sys_exit(load_param(frame, ARG_0));
+      break;
+    }
+  case SYS_WRITE: {
+      frame->eax = sys_write((int) load_param(frame, ARG_0), (const void*) load_param(frame, ARG_1), (unsigned int) load_param(frame, ARG_2));
+    }
   }
   thread_exit();
 }
@@ -46,6 +52,16 @@ static uint32_t load_param(struct intr_frame *frame, int offset) {
     sys_exit(-1);
   }
   return *((uint32_t *)frame->esp + offset);
+}
+
+
+// TODO: implement for other files
+int sys_write(int fd, const void* buffer, unsigned int length){
+  // TODO: pointer validation
+  if (fd == STDOUT_FILENO) {
+    putbuf((const char*)buffer, length);
+    return length;
+  }
 }
 
 // Respond to an exit syscall
