@@ -56,6 +56,7 @@ unsigned sys_tell(int fd);
 
 void sys_seek (int fd, unsigned pos);
 
+bool sys_remove(const char *filename);
 // Implemented syscalls-end
 
 // Helpers
@@ -117,6 +118,11 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
 
   case SYS_SEEK: {
     sys_seek((int)load_param(frame, ARG_0), (unsigned)load_param(frame, ARG_1));
+    return;
+  }
+
+  case SYS_REMOVE: {
+    frame->eax = sys_remove((const char *)load_param(frame, ARG_0));
     return;
   }
   }
@@ -291,7 +297,9 @@ struct filemap_t *find_filemap(int fd) {
   return NULL;
 }
 
-void sys_halt() { shutdown_power_off(); }
+void sys_halt() { 
+  shutdown_power_off(); 
+}
 
 bool sys_create(const char *name, unsigned int size) {
   // TODO: pointer safety check
@@ -327,3 +335,12 @@ void sys_seek (int fd, unsigned pos){
   file_seek(entry->file, pos);
   sema_up(&fs_sem);
 }
+
+bool sys_remove(const char *filename) {
+  sema_down (&fs_sem);
+  bool success = filesys_remove (filename);
+  sema_up (&fs_sem);
+
+  return success;
+}
+
