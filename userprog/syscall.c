@@ -1,4 +1,5 @@
 #include "userprog/syscall.h"
+#include "devices/input.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
 #include "threads/interrupt.h"
@@ -44,6 +45,8 @@ int sys_write(int fd, const void *buffer, unsigned int length);
 // Opens a file with the given filename and returns a file descriptor to it.
 int sys_open(const char *filename);
 
+int sys_read(int fd, void *buffer, unsigned int length);
+
 // Implemented syscalls-end
 
 // Helpers
@@ -74,6 +77,12 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
     frame->eax = sys_write((int)load_param(frame, ARG_0),
                            (const void *)load_param(frame, ARG_1),
                            (unsigned int)load_param(frame, ARG_2));
+    return;
+  }
+  case SYS_READ: {
+    frame->eax = sys_read((int)load_param(frame, ARG_0),
+                          (void *)load_param(frame, ARG_1),
+                          (unsigned int)load_param(frame, ARG_2));
     return;
   }
   case SYS_OPEN: {
@@ -184,6 +193,31 @@ int sys_open(const char *filename) {
   return fd;
 }
 
+int sys_read(int fd, void *buffer, unsigned int length) {
+  if (fd == STDIN_FILENO) {
+    unsigned int i;
+    for (i = 0; i < length; i++) {
+      if (!put_user((uint8_t *)buffer + i, (uint8_t)input_getc())) {
+        // TODO: remove magic number
+        sys_exit(-1);
+      }
+    }
+    return i;
+  }
+  // TODO: validate buffer pointer
+
+  struct filemap_t *entry = find_filemap(fd);
+
+  if (entry == NULL) {
+    // TODO: magic number!!
+    sys_exit(-1);
+  }
+
+  sema_down(&fs_sem);
+  int read = file_read(entry->file, buffer, length);
+  sema_up(&fs_sem);
+  return read;
+}
 // Lifted from
 // https://web.stanford.edu/~ouster/cgi-bin/cs140-spring18/pintos/pintos_3.html#SEC32
 /* Reads a byte at user virtual address UADDR.
