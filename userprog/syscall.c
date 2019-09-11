@@ -1,12 +1,12 @@
 #include "userprog/syscall.h"
 #include "devices/input.h"
+#include "devices/shutdown.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
 #include "threads/interrupt.h"
 #include "threads/malloc.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-#include "devices/shutdown.h"
 #include <stdio.h>
 #include <syscall-nr.h>
 
@@ -273,6 +273,4 @@ struct filemap_t *find_filemap(int fd) {
   return NULL;
 }
 
-void sys_halt(){
-  shutdown_power_off();
-}
+void sys_halt() { shutdown_power_off(); }
