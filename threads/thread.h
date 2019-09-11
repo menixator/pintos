@@ -96,6 +96,9 @@ struct thread {
   /* Owned by userprog/process.c. */
   uint32_t *pagedir; /* Page directory. */
   int exit_code;     /* Exit code of the program */
+
+  // List of open files
+  struct list filemap;
 #endif
 
   /* Owned by thread.c. */
