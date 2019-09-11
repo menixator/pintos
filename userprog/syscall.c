@@ -58,6 +58,8 @@ void sys_seek(int fd, unsigned pos);
 
 bool sys_remove(const char *filename);
 int sys_filesize(int fd);
+void sys_close(int fd);
+
 // Implemented syscalls-end
 
 // Helpers
@@ -128,6 +130,11 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
   }
   case SYS_FILESIZE: {
     frame->eax = sys_filesize((int)load_stack(frame, ARG_0));
+    return;
+  }
+
+  case SYS_CLOSE: {
+    sys_close((int)load_param(frame, ARG_0));
     return;
   }
   }
@@ -357,4 +364,20 @@ int sys_filesize(int fd) {
   int length = file_length(entry->file);
   sema_up(&fs_sem);
   return length;
+}
+
+void sys_close(int fd) {
+
+  struct filemap_t *entry = find_filemap(fd);
+  if (entry == NULL) {
+    return;
+  }
+
+  sema_down(&fs_sem);
+  file_close(entry->file);
+  sema_up(&fs_sem);
+
+  list_remove(&entry->ptr);
+  // Free the memory
+  free(entry);
 }
