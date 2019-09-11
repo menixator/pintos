@@ -1,5 +1,6 @@
 #include "userprog/syscall.h"
 #include "threads/interrupt.h"
+#include "threads/synch.h"
 #include "threads/thread.h"
 #include <stdio.h>
 #include <syscall-nr.h>
@@ -12,6 +13,10 @@ static void syscall_handler(struct intr_frame *);
 #define ARG_0 4
 #define ARG_1 8
 #define ARG_2 12
+
+// File system semaphore. limits the access to file system to one thread at a
+// time.
+static struct semaphore fs_sem;
 
 // Implemented syscalls
 // Exits a program with a provided status.
@@ -29,6 +34,9 @@ static bool put_user(uint8_t *udst, uint8_t byte);
 
 void syscall_init(void) {
   intr_register_int(0x30, 3, INTR_ON, syscall_handler, "syscall");
+
+  // Initialize file system semaphore
+  sema_init(&fs_sem, 1);
 }
 
 static void syscall_handler(struct intr_frame *frame UNUSED) {
