@@ -151,53 +151,72 @@ size_t ja_size(char *ja, size_t length) {
   return size;
 }
 
+/**
+ * The stack is to be formatted like this for an invocation: 'echo one two'
+ * // Order does not matter here. These will be referred to by pointers
+ * 'echo'                     // argv[0]
+ * 'one'                      // argv[1]
+ * 'two'                      // argv[2]
+ * [ alignment bytes ]        // only if esp  is not a multiple of 4. 0, 1, 2,
+ * or 3 bytes 0                          // by convention argv[argc] = 0 argv[2]
+ * // pointers to data above argv[1] argv[0] argv                       //
+ * pointer to the location right above this line argc return_address // dummy
+ * return address. 0 will suffice
+ */
 bool prepare_stack(void **esp, char *invocation) {
-  size_t arg_count = ja_init(invocation);
+  size_t argc = ja_init(invocation);
 
-  // The size of the arguments
-  size_t argv_size = ja_size(invocation, arg_count);
+  // The size of the arguments in bytes
+  size_t argsize = ja_size(invocation, argc);
 
   // Subtract the number of bytes from stack to make space for the arguments on
   // top.
-  *esp -= argv_size;
+  *esp -= argsize;
 
   // Store the location of argv
   char *argv = *esp;
 
-  memcpy(*esp, invocation, argv_size);
+  // Copy in the sanitized data into the stack.
+  memcpy(*esp, invocation, argsize);
 
   // Now lets align stack to a 4 byte boundary.
-  size_t align_offset = ((size_t)*esp) % 4;
-  *esp -= align_offset;
-  memset(*esp, 0, align_offset);
+  size_t alignment = ((size_t)*esp) % 4;
+  *esp -= alignment;
+  memset(*esp, 0, alignment);
 
   // Now lets make sure that argv[argv] returns 0
-  // We are going to write an integer.
+  // We are going to write a pointer.
   *esp -= sizeof(char *);
 
   // Store a zero so that argv[argc] = 0
   memset(*esp, 0, sizeof(char *));
 
-  // We are adding arg_count number of character pointers
-  *esp -= sizeof(char *) * arg_count;
+  // Making sure that the stack has enough space to write argc number of
+  // character pointers
+  *esp -= sizeof(char *) * argc;
 
   // The location after getting enough space to write the arguments.
-  char *readseek = argv;
+  char *rseek = argv;
   // store the address where argv should start writing.
-  char **writeseek = (char **)*esp;
+  char **wseek = (char **)*esp;
 
-  for (size_t i = 0; i < arg_count; i++) {
-    *writeseek = readseek;
-    (writeseek)++;
-    readseek += strlen(readseek) + 1;
+  for (size_t i = 0; i < argc; i++) {
+    // Push the pointer value of rseek onto the stack.
+    *wseek = rseek;
+    // On to the next one.
+    wseek++;
+    // Read the next one
+    rseek += strlen(rseek) + 1;
   }
-  *esp -= sizeof(char *);
 
+  // Preparing to add argv.
+  *esp -= sizeof(char *);
+  // Write the location of argv[0] onto the stack.
   *((char **)*esp) = *esp + sizeof(char *);
 
-  // now add argc
+  // Adding argc
   *esp -= sizeof(int);
-  **((int **)esp) = (int)arg_count;
+  **((int **)esp) = (int)argc;
 
   // Add the return address.
   *esp -= sizeof(void *);
