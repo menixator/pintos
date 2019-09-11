@@ -6,6 +6,7 @@
 #include "threads/malloc.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
+#include "devices/shutdown.h"
 #include <stdio.h>
 #include <syscall-nr.h>
 
@@ -46,6 +47,8 @@ int sys_write(int fd, const void *buffer, unsigned int length);
 int sys_open(const char *filename);
 
 int sys_read(int fd, void *buffer, unsigned int length);
+// Terminates Pintos
+void sys_halt(void);
 
 // Implemented syscalls-end
 
@@ -87,6 +90,11 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
   }
   case SYS_OPEN: {
     frame->eax = sys_open((const char *)load_param(frame, ARG_0));
+    return;
+  }
+
+  case SYS_HALT: {
+
     return;
   }
   }
@@ -263,4 +271,8 @@ struct filemap_t *find_filemap(int fd) {
     }
   }
   return NULL;
+}
+
+void sys_halt(){
+  shutdown_power_off();
 }
