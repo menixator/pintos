@@ -50,6 +50,7 @@ int sys_open(const char *filename);
 // Loads a paramters from a interrupt frame's stack.
 static uint32_t load_param(struct intr_frame *frame, int offset);
 static int get_user(const uint8_t *uaddr);
+struct filemap_t *find_filemap(int fd);
 
 static bool put_user(uint8_t *udst, uint8_t byte);
 
@@ -93,14 +94,24 @@ static uint32_t load_param(struct intr_frame *frame, int offset) {
   return *(((uint32_t *)(frame->esp + offset)));
 }
 
-// TODO: implement for other files
 int sys_write(int fd, const void *buffer, unsigned int length) {
   // TODO: pointer validation
   if (fd == STDOUT_FILENO) {
     putbuf((const char *)buffer, length);
     return length;
   }
-  return 0;
+
+  struct filemap_t *entry = find_filemap(fd);
+
+  if (entry == NULL) {
+    // TODO: remove magic number
+    sys_exit(-1);
+  }
+
+  sema_down(&fs_sem);
+  int written = file_write(entry->file, buffer, length);
+  sema_up(&fs_sem);
+  return written;
 }
 
 // Respond to an exit syscall
@@ -195,4 +206,26 @@ static bool put_user(uint8_t *udst, uint8_t byte) {
       : "=&a"(error_code), "=m"(*udst)
       : "q"(byte));
   return error_code != -1;
+}
+
+struct filemap_t *find_filemap(int fd) {
+  // Find a number to assign as a file descriptor
+  struct thread *thread = thread_current();
+  struct list_elem *node;
+  // Loop over each filemap_t entry we have stored for the thread and find a
+  // file descriptor that is not taken.
+  for (node = list_begin(&thread->filemap); node != list_end(&thread->filemap);
+       node = list_next(node), fd++) {
+    struct filemap_t *entry = list_entry(node, struct filemap_t, ptr);
+    if (entry->fd > fd) {
+      // The file list is sorted. So if the file descriptor of the entry is
+      // greater than the one we are looking for, we can be sure that it does
+      // not exist
+      break;
+    }
+    if (entry->fd == fd) {
+      return entry;
+    }
+  }
+  return NULL;
 }
