@@ -94,7 +94,7 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
   }
 
   case SYS_HALT: {
-
+    sys_halt();
     return;
   }
   }
