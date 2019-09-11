@@ -75,6 +75,10 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
                            (unsigned int)load_param(frame, ARG_2));
     return;
   }
+  case SYS_OPEN: {
+    frame->eax = sys_open((const char *)load_param(frame, ARG_0));
+    return;
+  }
   }
   // TODO: remove
   printf("error: you did not return within your case statement up there. "
