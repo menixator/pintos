@@ -5,6 +5,7 @@
 #include "threads/malloc.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
+#include "devices/shutdown.h"
 #include <stdio.h>
 #include <syscall-nr.h>
 
@@ -44,6 +45,9 @@ int sys_write(int fd, const void *buffer, unsigned int length);
 // Opens a file with the given filename and returns a file descriptor to it.
 int sys_open(const char *filename);
 
+// Terminates Pintos
+void sys_halt(void);
+
 // Implemented syscalls-end
 
 // Helpers
@@ -79,6 +83,11 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
   case SYS_OPEN: {
     frame->eax = sys_open((const char *)load_param(frame, ARG_0));
     return;
+  }
+
+  case SYS_HALT: {
+    shutdown_power_off();
+    break;
   }
   }
   // TODO: remove
