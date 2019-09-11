@@ -27,7 +27,7 @@ static bool load(const char *cmdline, void (**eip)(void), void **esp);
 size_t ja_init(char *src);
 void ja_print(char *ja, size_t length);
 size_t ja_size(char *ja, size_t length);
-bool prepare_stack(void **esp, char *invocation);
+bool build_stack(void **esp, char *invocation);
 void retrieve_filename(const char *search_space, char *filename);
 
 /* Starts a new thread running a user program loaded from
@@ -152,6 +152,7 @@ size_t ja_size(char *ja, size_t length) {
 }
 
 /**
+ * Builds the stack, with a provided string by adding any required data onto it.
  * The stack is to be formatted like this for an invocation: 'echo one two'
  * // Order does not matter here. These will be referred to by pointers
  * 'echo'                     // argv[0]
@@ -163,7 +164,7 @@ size_t ja_size(char *ja, size_t length) {
  * pointer to the location right above this line argc return_address // dummy
  * return address. 0 will suffice
  */
-bool prepare_stack(void **esp, char *invocation) {
+bool build_stack(void **esp, char *invocation) {
   size_t argc = ja_init(invocation);
 
   // The size of the arguments in bytes
@@ -478,7 +479,7 @@ bool load(const char *invocation, void (**eip)(void), void **esp) {
   char *inv_copy = palloc_get_page(0);
   memcpy(inv_copy, invocation, strlen(invocation));
   // Pains me to use labels, but here we go.
-  bool stack_init_success = prepare_stack(esp, inv_copy);
+  bool stack_init_success = build_stack(esp, inv_copy);
   palloc_free_page(inv_copy);
   if (!stack_init_success) {
     goto done;
