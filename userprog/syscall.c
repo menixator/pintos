@@ -49,6 +49,7 @@ int sys_open(const char *filename);
 int sys_read(int fd, void *buffer, unsigned int length);
 // Terminates Pintos
 void sys_halt(void);
+bool sys_create(const char *name, unsigned int size);
 
 // Implemented syscalls-end
 
@@ -95,6 +96,12 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
 
   case SYS_HALT: {
     sys_halt();
+    return;
+  }
+
+  case SYS_CREATE: {
+    frame->eax = sys_create((const char *)load_param(frame, ARG_0),
+                            (unsigned int)load_param(frame, ARG_1));
     return;
   }
   }
@@ -274,3 +281,12 @@ struct filemap_t *find_filemap(int fd) {
 }
 
 void sys_halt() { shutdown_power_off(); }
+
+bool sys_create(const char *name, unsigned int size) {
+  // TODO: pointer safety check
+  bool status;
+  sema_down(&fs_sem);
+  status = filesys_create(name, size);
+  sema_up(&fs_sem);
+  return status;
+}
