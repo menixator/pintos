@@ -52,6 +52,7 @@ int sys_read(int fd, void *buffer, unsigned int length);
 // Terminates Pintos
 void sys_halt(void);
 bool sys_create(const char *name, unsigned int size);
+unsigned sys_tell(int fd);
 
 // Implemented syscalls-end
 
@@ -104,6 +105,11 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
   case SYS_CREATE: {
     frame->eax = sys_create((const char *)load_param(frame, ARG_0),
                             (unsigned int)load_param(frame, ARG_1));
+    return;
+  }
+
+  case SYS_TELL: {
+    frame->eax = sys_tell((int)load_param(frame, ARG_0));
     return;
   }
   }
@@ -287,4 +293,19 @@ bool sys_create(const char *name, unsigned int size) {
   status = filesys_create(name, size);
   sema_up(&fs_sem);
   return status;
+}
+
+unsigned sys_tell(int fd) {
+  // Get the file
+  struct filemap_t *entry = find_filemap(fd);
+  if (entry == NULL) {
+    sys_exit(ERROR_EXIT);
+  }
+
+  // Always push down on the semaphore before doing anything with the file
+  // system
+  sema_down(&fs_sem);
+  unsigned int loc = file_tell(entry->file);
+  sema_up(&fs_sem);
+  return loc;
 }
