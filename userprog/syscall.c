@@ -54,6 +54,8 @@ void sys_halt(void);
 bool sys_create(const char *name, unsigned int size);
 unsigned sys_tell(int fd);
 
+void sys_seek (int fd, unsigned pos);
+
 // Implemented syscalls-end
 
 // Helpers
@@ -110,6 +112,11 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
 
   case SYS_TELL: {
     frame->eax = sys_tell((int)load_param(frame, ARG_0));
+    return;
+  }
+
+  case SYS_SEEK: {
+    sys_seek((int)load_param(frame, ARG_0), (unsigned)load_param(frame, ARG_1));
     return;
   }
   }
@@ -308,4 +315,15 @@ unsigned sys_tell(int fd) {
   unsigned int loc = file_tell(entry->file);
   sema_up(&fs_sem);
   return loc;
+}
+
+void sys_seek (int fd, unsigned pos){
+  struct filemap_t *entry = find_filemap(fd);
+  if (entry == NULL) {
+    sys_exit(ERROR_EXIT);
+  }
+
+  sema_down(&fs_sem);
+  file_seek(entry->file, pos);
+  sema_up(&fs_sem);
 }
