@@ -129,7 +129,7 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
     return;
   }
   case SYS_FILESIZE: {
-    frame->eax = sys_filesize((int)load_stack(frame, ARG_0));
+    frame->eax = sys_filesize((int)load_param(frame, ARG_0));
     return;
   }
 
