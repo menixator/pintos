@@ -167,8 +167,9 @@ int sys_open(const char *filename) {
   }
   entry->fd = fd;
 
-  // TODO: semaphores
+  sema_down(&fs_sem);
   entry->file = filesys_open(filename);
+  sema_up(&fs_sem);
 
   // Make sure that the file was opened.
   if (entry->file == NULL) {
