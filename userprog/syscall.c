@@ -54,9 +54,10 @@ void sys_halt(void);
 bool sys_create(const char *name, unsigned int size);
 unsigned sys_tell(int fd);
 
-void sys_seek (int fd, unsigned pos);
+void sys_seek(int fd, unsigned pos);
 
 bool sys_remove(const char *filename);
+int sys_filesize(int fd);
 // Implemented syscalls-end
 
 // Helpers
@@ -125,6 +126,10 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
     frame->eax = sys_remove((const char *)load_param(frame, ARG_0));
     return;
   }
+  case SYS_FILESIZE: {
+    frame->eax = sys_filesize((int)load_stack(frame, ARG_0));
+    return;
+  }
   }
   // TODO: remove
   printf("error: you did not return within your case statement up there. "
@@ -190,7 +195,7 @@ int sys_open(const char *filename) {
   // This is to handle integer overflows for the file descriptor.  Since a
   // valid file descriptor is >= 2(on pintos), and a file descriptor is an
   // integer, that means any program can theoretically open 2**32-1 files at
-  // once. Of course, this is not a case we are planning on seeing often as the
+  // once. Of course, this is not a case we are planning on seeing -- as the
   // os will usually run out of memory before you hit that limit.  Another case
   // is when a program runs for too long, opening and closing files, if you do
   // not reuse file descriptor numbers that have been closed and always start
@@ -297,9 +302,7 @@ struct filemap_t *find_filemap(int fd) {
   return NULL;
 }
 
-void sys_halt() { 
-  shutdown_power_off(); 
-}
+void sys_halt() { shutdown_power_off(); }
 
 bool sys_create(const char *name, unsigned int size) {
   // TODO: pointer safety check
@@ -325,7 +328,7 @@ unsigned sys_tell(int fd) {
   return loc;
 }
 
-void sys_seek (int fd, unsigned pos){
+void sys_seek(int fd, unsigned pos) {
   struct filemap_t *entry = find_filemap(fd);
   if (entry == NULL) {
     sys_exit(ERROR_EXIT);
@@ -337,10 +340,21 @@ void sys_seek (int fd, unsigned pos){
 }
 
 bool sys_remove(const char *filename) {
-  sema_down (&fs_sem);
-  bool success = filesys_remove (filename);
-  sema_up (&fs_sem);
+  sema_down(&fs_sem);
+  bool success = filesys_remove(filename);
+  sema_up(&fs_sem);
 
   return success;
 }
 
+int sys_filesize(int fd) {
+  struct filemap_t *entry = find_filemap(fd);
+  if (entry == NULL) {
+    sys_exit(ERROR_EXIT);
+  }
+
+  sema_down(&fs_sem);
+  int length = file_length(entry->file);
+  sema_up(&fs_sem);
+  return length;
+}
