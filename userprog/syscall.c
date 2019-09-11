@@ -19,6 +19,8 @@ static void syscall_handler(struct intr_frame *);
 #define ARG_1 8
 #define ARG_2 12
 
+#define ERROR_EXIT -1
+
 // File system semaphore. limits the access to file system to one thread at a
 // time.
 static struct semaphore fs_sem;
@@ -113,7 +115,7 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
 
 static uint32_t load_param(struct intr_frame *frame, int offset) {
   if (get_user(frame->esp + offset) == -1) {
-    sys_exit(-1);
+    sys_exit(ERROR_EXIT);
   }
   return *(((uint32_t *)(frame->esp + offset)));
 }
@@ -128,8 +130,7 @@ int sys_write(int fd, const void *buffer, unsigned int length) {
   struct filemap_t *entry = find_filemap(fd);
 
   if (entry == NULL) {
-    // TODO: remove magic number
-    sys_exit(-1);
+    sys_exit(ERROR_EXIT);
   }
 
   sema_down(&fs_sem);
@@ -178,8 +179,7 @@ int sys_open(const char *filename) {
   // file descriptor. However, since this specific implementation reuses file
   // descriptors, that is not a possible scenario.
   if (fd < FD_START) {
-    // TODO: remove magic number
-    sys_exit(-1);
+    sys_exit(ERROR_EXIT);
   }
 
   // Initialize enough memory for the file.
@@ -213,8 +213,7 @@ int sys_read(int fd, void *buffer, unsigned int length) {
     unsigned int i;
     for (i = 0; i < length; i++) {
       if (!put_user((uint8_t *)buffer + i, (uint8_t)input_getc())) {
-        // TODO: remove magic number
-        sys_exit(-1);
+        sys_exit(ERROR_EXIT);
       }
     }
     return i;
@@ -224,8 +223,7 @@ int sys_read(int fd, void *buffer, unsigned int length) {
   struct filemap_t *entry = find_filemap(fd);
 
   if (entry == NULL) {
-    // TODO: magic number!!
-    sys_exit(-1);
+    sys_exit(ERROR_EXIT);
   }
 
   sema_down(&fs_sem);
