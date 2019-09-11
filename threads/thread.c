@@ -418,6 +418,7 @@ static void init_thread(struct thread *t, const char *name, int priority) {
   // Initialize the exit code as -1.
   // This will be updated by the exit syscall
   t->exit_code = -1;
+  list_init(&t->filemap);
 #endif
 
   // t->is_kernel = is_kernel;
