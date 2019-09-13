@@ -345,7 +345,10 @@ void sys_close(int fd) {
 }
 
 pid_t sys_exec(const char *invocation) {
-  // TODO: validate invocation
+  // TODO: maybe check the entire buffer?
+  if (get_user((const uint8_t *)invocation) == -1) {
+    sys_exit(ERROR_EXIT);
+  }
   return process_execute(invocation);
 }
 
