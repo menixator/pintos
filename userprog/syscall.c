@@ -326,12 +326,20 @@ void sys_close(int fd) {
 void close_all_files(struct thread *cur) {
   // Freeing up all the files
   for (struct list_elem *node = list_begin(&cur->filemap);
-       node != list_end(&cur->filemap); node = list_next(node)) {
+       node != list_end(&cur->filemap);) {
+
     struct filemap_t *filemap = list_entry(node, struct filemap_t, ptr);
+
+    // We are about to remove the current node so we have to make sure we have
+    // a reference to the next node
+    node = list_next(node);
+
     sema_down(&fs_sem);
     file_close(filemap->file);
     sema_up(&fs_sem);
+
     list_remove(&filemap->ptr);
+
     // free up the memory
     free(filemap);
   }
