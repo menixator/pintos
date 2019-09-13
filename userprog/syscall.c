@@ -75,6 +75,7 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
 
   case SYS_WAIT: {
     frame->eax = sys_wait((int)load_param(frame, ARG_0));
+    return;
   }
   }
   // TODO: remove
