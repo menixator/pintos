@@ -300,6 +300,8 @@ static void start_process(void *file_name_) {
 
   success = load(file_name, &if_.eip, &if_.esp);
 
+  palloc_free_page(file_name);
+
   // Updates the loading status of a process
   struct thread *thread = thread_current();
   struct thread *parent = thread->parent;
@@ -311,7 +313,6 @@ static void start_process(void *file_name_) {
   }
 
   /* If load failed, quit. */
-  palloc_free_page(file_name);
   if (!success)
     thread_exit();
 
@@ -610,7 +611,7 @@ bool load(const char *invocation, void (**eip)(void), void **esp) {
     goto done;
 
   char *inv_copy = palloc_get_page(0);
-  memcpy(inv_copy, invocation, strlen(invocation));
+  strlcpy(inv_copy, invocation, PGSIZE);
   // Pains me to use labels, but here we go.
   bool stack_init_success = build_stack(esp, inv_copy);
   palloc_free_page(inv_copy);
