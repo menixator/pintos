@@ -13,7 +13,7 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
   switch (syscall_variant) {
   // exit syscall
   case SYS_EXIT: {
-    sys_exit(load_param(frame, ARG_0));
+    sys_exit((int)load_param(frame, ARG_0));
     return;
   }
   case SYS_WRITE: {
