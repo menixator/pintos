@@ -199,6 +199,8 @@ int sys_read(int fd, void *buffer, unsigned int length) {
    Returns the byte value if successful, -1 if a segfault
    occurred. */
 static int get_user(const uint8_t *uaddr) {
+  if ((uint32_t)uaddr >= (uint32_t)PHYS_BASE)
+    return -1;
   int result;
   asm("movl $1f, %0; movzbl %1, %0; 1:" : "=&a"(result) : "m"(*uaddr));
   return result;
