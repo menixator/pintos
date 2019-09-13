@@ -26,6 +26,8 @@ static bool load(const char *cmdline, void (**eip)(void), void **esp);
 // Initializes a process
 struct process *process_init(tid_t tid);
 
+// Gets a child process from a thread with a specific pid
+struct process *get_child_process(struct thread *thread, pid_t pid);
 // Helpers
 size_t ja_init(char *src);
 void ja_print(char *ja, size_t length);
@@ -63,10 +65,37 @@ tid_t process_execute(const char *invocation_) {
   /* Create a new thread to execute FILE_NAME. */
   // start_process will be called with invocation
   // as start_process(invocation)
+  // Starting from process onwards, the code will be executed in a different
+  // thread.
   tid = thread_create(filename, PRI_DEFAULT, start_process, invocation);
 
-  if (tid == TID_ERROR)
+  if (tid == TID_ERROR) {
     palloc_free_page(invocation);
+  }
+
+  struct process *child = process_init(tid);
+
+  // Return on error
+  if (child == NULL) {
+    palloc_free_page(invocation);
+    return -1;
+  }
+
+  // Gets the parent thread.
+  struct thread *parent = thread_current();
+
+  // Do keep in mind that tid and parent do not refer to the same thread.
+  // Add the new process as a child of the parent thread.
+  list_push_back(&parent->child_processes, &child->ptr);
+
+  // Push down on the load semaphore which will be pushed up when the process
+  // is done loading.
+  sema_down(&child->load);
+
+  if (child->load_status == FAIL) {
+    return -1;
+  }
+
   return tid;
 }
 
@@ -268,6 +297,16 @@ static void start_process(void *file_name_) {
 
   success = load(file_name, &if_.eip, &if_.esp);
 
+  // Updates the loading status of a process
+  struct thread *thread = thread_current();
+  struct thread *parent = thread->parent;
+  struct process *process = get_child_process(parent, thread->tid);
+
+  if (process != NULL) {
+    process->load_status = success ? SUCCESS : FAIL;
+    sema_up(&process->load);
+  }
+
   /* If load failed, quit. */
   palloc_free_page(file_name);
   if (!success)
@@ -281,6 +320,25 @@ static void start_process(void *file_name_) {
      and jump to it. */
   asm volatile("movl %0, %%esp; jmp intr_exit" : : "g"(&if_) : "memory");
   NOT_REACHED();
+}
+
+// Gets a child_process from a thread with a specific pid
+struct process *get_child_process(struct thread *thread, pid_t pid) {
+  struct list_elem *node;
+  struct process *process;
+
+  if (thread == NULL)
+    return NULL;
+
+  for (node = list_begin(&thread->child_processes);
+       node != list_end(&thread->child_processes); node = list_next(node)) {
+    process = list_entry(node, struct process, ptr);
+
+    if (process->pid == pid) {
+      return process;
+    }
+  }
+  return NULL;
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
