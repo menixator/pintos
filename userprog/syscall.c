@@ -242,6 +242,10 @@ struct filemap_t *find_filemap(int fd) {
 void sys_halt() { shutdown_power_off(); }
 
 bool sys_create(const char *name, unsigned int size) {
+  // If name is null, return false.
+  if (name == NULL) {
+    return false;
+  }
   // TODO: pointer safety check
   bool status;
   sema_down(&fs_sem);
