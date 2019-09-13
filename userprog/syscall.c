@@ -248,7 +248,12 @@ bool sys_create(const char *name, unsigned int size) {
   if (name == NULL) {
     sys_exit(ERROR_EXIT);
   }
-  // TODO: pointer safety check
+
+  // If it is a bad pointer, exit the program
+  if (get_user((const uint8_t *)name) == -1) {
+    sys_exit(ERROR_EXIT);
+  }
+
   bool status;
   sema_down(&fs_sem);
   status = filesys_create(name, size);
