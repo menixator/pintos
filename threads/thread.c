@@ -320,7 +320,8 @@ void thread_set_priority(int new_priority) {
 int thread_get_priority(void) { return thread_current()->priority; }
 
 /* Sets the current thread's nice value to NICE. */
-void thread_set_nice(int nice UNUSED) { /* Not yet implemented. */ }
+void thread_set_nice(int nice UNUSED) { /* Not yet implemented. */
+}
 
 /* Returns the current thread's nice value. */
 int thread_get_nice(void) {
@@ -538,3 +539,18 @@ static tid_t allocate_tid(void) {
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof(struct thread, stack);
+
+// Gets a thread.
+struct thread *thread_get(tid_t thread_id) {
+  struct list_elem *e;
+
+  ASSERT(intr_get_level() == INTR_OFF);
+
+  for (e = list_begin(&all_list); e != list_end(&all_list); e = list_next(e)) {
+    struct thread *t = list_entry(e, struct thread, allelem);
+    if (t->tid == thread_id) {
+      return t;
+    }
+  }
+  return NULL;
+}
