@@ -95,6 +95,7 @@ shutdown_power_off (void)
 #endif
 
   print_stats ();
+  printf ("Powering off...\n");
   serial_flush ();
 
   /* ACPI Shutdown sequence supported by Bochs and QEMU
