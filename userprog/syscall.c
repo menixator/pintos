@@ -74,7 +74,7 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
   }
 
   case SYS_WAIT: {
-    frame->eax = sys_wait((int)load_param(frame, ARG_0));
+    frame->eax = sys_wait((pid_t)load_param(frame, ARG_0));
     return;
   }
   }
@@ -349,7 +349,7 @@ pid_t sys_exec(const char *invocation) {
   return process_execute(invocation);
 }
 
-pid_t sys_wait(pid_t pid) {
+int sys_wait(pid_t pid) {
   // TODO: validate invocation
   return process_wait(pid);
 }

@@ -62,7 +62,7 @@ unsigned sys_tell(int fd);
 void sys_seek(int fd, unsigned pos);
 
 pid_t sys_exec(const char *invocation);
-pid_t sys_wait(pid_t pid);
+int sys_wait(pid_t pid);
 bool sys_remove(const char *filename);
 int sys_filesize(int fd);
 void sys_close(int fd);
