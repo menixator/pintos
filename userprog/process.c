@@ -353,12 +353,25 @@ struct process *get_child_process(struct thread *thread, pid_t pid) {
 
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
-int process_wait(tid_t child_tid UNUSED) {
-  // FIXME: @bgaster --- quick hack to make sure processes execute!
-  for (;;)
-    ;
+int process_wait(tid_t child_tid) {
+  // Get current process.
 
-  return -1;
+  struct thread *thread = thread_current();
+  struct process *process = get_child_process(thread, child_tid);
+
+  // Return -1 if the process was not found.
+  if (process == NULL) {
+    return -1;
+  }
+
+  // TODO: make sure that a process is not waiting on twice.
+  sema_down(&process->wait);
+
+  int exit_code = process->exit_code;
+  list_remove(&process->ptr);
+
+  free(process);
+  return exit_code;
 }
 
 /* Free the current process's resources. */
