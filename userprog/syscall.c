@@ -104,7 +104,7 @@ int sys_write(int fd, const void *buffer, unsigned int length) {
 void sys_exit(int status) {
   struct thread *curr = thread_current();
   curr->exit_code = status;
-  thead_exit();
+  thread_exit();
 }
 
 int sys_open(const char *filename) {
