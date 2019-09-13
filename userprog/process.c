@@ -5,6 +5,7 @@
 #include "threads/flags.h"
 #include "threads/init.h"
 #include "threads/interrupt.h"
+#include "threads/malloc.h"
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
@@ -22,6 +23,8 @@
 
 static thread_func start_process NO_RETURN;
 static bool load(const char *cmdline, void (**eip)(void), void **esp);
+// Initializes a process
+struct process *process_init(tid_t tid);
 
 // Helpers
 size_t ja_init(char *src);
@@ -65,6 +68,29 @@ tid_t process_execute(const char *invocation_) {
   if (tid == TID_ERROR)
     palloc_free_page(invocation);
   return tid;
+}
+
+struct process *process_init(tid_t tid) {
+  struct process *process = malloc(sizeof(struct process));
+
+  // Return NULL if malloc failed
+  if (process == NULL) {
+    return NULL;
+  }
+
+  // pid is the same as the thread id
+  process->pid = tid;
+
+  // Initialize as loading.
+  process->load_status = LOADING;
+
+  // Initialize the wait semaphore
+  sema_init(&process->wait, 0);
+
+  // Initialize the load semaphore
+  sema_init(&process->load, 0);
+
+  return process;
 }
 
 // Retrieves the first token delimited with a space from a string.
