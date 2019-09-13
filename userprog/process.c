@@ -400,8 +400,8 @@ void process_exit(void) {
           struct thread *child_thread = thread_get(child_process->pid);
 
           child_thread->parent = NULL;
-          list_remove(&process->ptr);
-          free(process);
+          list_remove(&child_process->ptr);
+          free(child_process);
         }
       }
     }
