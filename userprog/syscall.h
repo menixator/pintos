@@ -5,11 +5,13 @@
 #include "devices/shutdown.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
+#include "lib/user/syscall.h"
 #include "threads/interrupt.h"
 #include "threads/malloc.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "userprog/process.h"
 #include <stdio.h>
 #include <syscall-nr.h>
 
@@ -59,6 +61,7 @@ unsigned sys_tell(int fd);
 
 void sys_seek(int fd, unsigned pos);
 
+pid_t sys_exec(const char *invocation);
 bool sys_remove(const char *filename);
 int sys_filesize(int fd);
 void sys_close(int fd);

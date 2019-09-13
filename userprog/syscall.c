@@ -63,6 +63,11 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
     return;
   }
 
+  case SYS_EXEC: {
+    frame->eax = sys_exec((const char *)load_param(frame, ARG_0));
+    return;
+  }
+
   case SYS_CLOSE: {
     sys_close((int)load_param(frame, ARG_0));
     return;
@@ -333,6 +338,11 @@ void sys_close(int fd) {
   list_remove(&entry->ptr);
   // Free the memory
   free(entry);
+}
+
+pid_t sys_exec(const char *invocation) {
+  // TODO: validate invocation
+  return process_execute(invocation);
 }
 
 void close_all_files(struct thread *cur) {
