@@ -246,7 +246,7 @@ void sys_halt() { shutdown_power_off(); }
 bool sys_create(const char *name, unsigned int size) {
   // If name is null, return false.
   if (name == NULL) {
-    return false;
+    sys_exit(ERROR_EXIT);
   }
   // TODO: pointer safety check
   bool status;
