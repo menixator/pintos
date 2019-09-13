@@ -109,7 +109,7 @@ void sys_exit(int status) {
 
 int sys_open(const char *filename) {
   if (get_user((const uint8_t *)filename) == -1) {
-    sys_exit(SYS_EXIT);
+    sys_exit(ERROR_EXIT);
   }
 
   // Find a number to assign as a file descriptor
