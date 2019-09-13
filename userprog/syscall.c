@@ -104,7 +104,7 @@ int sys_write(int fd, const void *buffer, unsigned int length) {
 void sys_exit(int status) {
   struct thread *curr = thread_current();
   curr->exit_code = status;
-  thread_exit();
+  thead_exit();
 }
 
 int sys_open(const char *filename) {
@@ -172,6 +172,7 @@ int sys_open(const char *filename) {
 }
 
 int sys_read(int fd, void *buffer, unsigned int length) {
+
   if (fd == STDIN_FILENO) {
     unsigned int i;
     for (i = 0; i < length; i++) {
@@ -181,7 +182,12 @@ int sys_read(int fd, void *buffer, unsigned int length) {
     }
     return i;
   }
-  // TODO: validate buffer pointer
+
+  // Validate the buffer.
+  if (get_user((const uint8_t *)buffer) == -1 ||
+      get_user((const uint8_t *)buffer + (length - 1)) == -1) {
+    sys_exit(ERROR_EXIT);
+  }
 
   struct filemap_t *entry = find_filemap(fd);
 
