@@ -25,7 +25,7 @@ static void syscall_handler(struct intr_frame *);
 
 // File system semaphore. limits the access to file system to one thread at a
 // time.
-extern struct semaphore fs_sem;
+static struct semaphore fs_sem;
 // TODO: move this somewhere else
 struct filemap_t {
   struct list_elem ptr;
