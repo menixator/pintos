@@ -195,6 +195,11 @@ tid_t thread_create(const char *name, int priority, thread_func *function,
   sf->eip = switch_entry;
   sf->ebp = 0;
 
+#ifdef USERPROG
+  // Set the current thread as the parent of the newly created thread.
+  t->parent = thread_current();
+#endif
+
   /* Add to run queue. */
   thread_unblock(t);
 
@@ -419,6 +424,9 @@ static void init_thread(struct thread *t, const char *name, int priority) {
   // This will be updated by the exit syscall
   t->exit_code = -1;
   list_init(&t->filemap);
+  // Initialize the list of child processes.
+  list_init(&t->child_processes);
+  t->parent = NULL;
 #endif
 
   // t->is_kernel = is_kernel;

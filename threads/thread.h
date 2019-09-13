@@ -92,6 +92,7 @@ struct thread {
   struct list_elem elem; /* List element. */
 
 #ifdef USERPROG
+  struct thread *parent;
   bool is_user;
   /* Owned by userprog/process.c. */
   uint32_t *pagedir; /* Page directory. */
@@ -99,6 +100,9 @@ struct thread {
 
   // List of open files
   struct list filemap;
+
+  // List of process* for all the children.
+  struct list child_processes;
 #endif
 
   /* Owned by thread.c. */
