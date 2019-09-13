@@ -38,7 +38,7 @@ void retrieve_filename(const char *search_space, char *filename);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
-   before process_execute() returns.  Returns the new process's
+   before rocess_execute() returns.  Returns the new process's
    thread id, or TID_ERROR if the thread cannot be created. */
 tid_t process_execute(const char *invocation_) {
 
@@ -399,7 +399,10 @@ void process_exit(void) {
           node = list_next(node);
 
           struct thread *child_thread = thread_get(child_process->pid);
-
+          if (child_thread == NULL){
+            // Child thread could've exited peacefully.
+            continue;
+          }
           child_thread->parent = NULL;
           list_remove(&child_process->ptr);
           free(child_process);
