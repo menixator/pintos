@@ -72,13 +72,16 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
     sys_close((int)load_param(frame, ARG_0));
     return;
   }
+
+  case SYS_WAIT: {
+    frame->eax = sys_wait((int)load_param(frame, ARG_0));
+  }
   }
   // TODO: remove
   printf("error: you did not return within your case statement up there. "
          "Thread is exiting now\n");
   thread_exit();
 }
-
 static uint32_t load_param(struct intr_frame *frame, int offset) {
   if (get_user(frame->esp + offset) == -1) {
     sys_exit(ERROR_EXIT);
@@ -343,6 +346,11 @@ void sys_close(int fd) {
 pid_t sys_exec(const char *invocation) {
   // TODO: validate invocation
   return process_execute(invocation);
+}
+
+pid_t sys_wait(pid_t pid) {
+  // TODO: validate invocation
+  return process_wait(pid);
 }
 
 void close_all_files(struct thread *cur) {
