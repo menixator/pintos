@@ -399,7 +399,7 @@ void process_exit(void) {
           node = list_next(node);
 
           struct thread *child_thread = thread_get(child_process->pid);
-          if (child_thread == NULL){
+          if (child_thread == NULL) {
             // Child thread could've exited peacefully.
             continue;
           }
