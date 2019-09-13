@@ -1,3 +1,6 @@
 build
 bochsrc.txt
 bochsout.txt
+
+# ignore object files
+.o
