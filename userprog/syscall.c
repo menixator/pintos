@@ -82,7 +82,11 @@ static uint32_t load_param(struct intr_frame *frame, int offset) {
 }
 
 int sys_write(int fd, const void *buffer, unsigned int length) {
-  // TODO: pointer validation
+  // Pointer validation
+  if (get_user((const uint8_t *)buffer) == -1) {
+    sys_exit(ERROR_EXIT);
+  }
+
   if (fd == STDOUT_FILENO) {
     putbuf((const char *)buffer, length);
     return length;
