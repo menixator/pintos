@@ -392,8 +392,11 @@ void process_exit(void) {
       if (!list_empty(&cur->child_processes)) {
 
         for (struct list_elem *node = list_begin(&cur->child_processes);
-             node != list_end(&cur->child_processes); node = list_next(node)) {
+             node != list_end(&cur->child_processes);) {
           struct process *child_process = list_entry(node, struct process, ptr);
+
+          node = list_next(node);
+
           struct thread *child_thread = thread_get(child_process->pid);
 
           child_thread->parent = NULL;
