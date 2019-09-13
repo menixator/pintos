@@ -11,6 +11,7 @@
 #include "threads/vaddr.h"
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
+#include "userprog/syscall.h"
 #include "userprog/tss.h"
 #include <debug.h>
 #include <inttypes.h>
@@ -112,6 +113,8 @@ struct process *process_init(tid_t tid) {
 
   // Initialize as loading.
   process->load_status = LOADING;
+
+  process->exit_code = -1;
 
   // Initialize the wait semaphore
   sema_init(&process->wait, 0);
@@ -362,6 +365,36 @@ int process_wait(tid_t child_tid UNUSED) {
 void process_exit(void) {
   struct thread *cur = thread_current();
   uint32_t *pd;
+
+  if (cur->is_user) {
+    struct process *process = get_child_process(cur->parent, cur->tid);
+
+    // Update the exit status on the parent.
+    if (process != NULL) {
+      process->exit_code = cur->exit_code;
+      // Push up the semaphore
+      sema_up(&process->wait);
+
+      // Remove references to the thread from child processes.
+      if (!list_empty(&cur->child_processes)) {
+
+        for (struct list_elem *node = list_begin(&cur->child_processes);
+             node != list_end(&cur->child_processes); node = list_next(node)) {
+          struct process *child_process = list_entry(node, struct process, ptr);
+          struct thread *child_thread = thread_get(child_process->pid);
+
+          child_thread->parent = NULL;
+          list_remove(&process->ptr);
+          free(process);
+        }
+      }
+    }
+  }
+
+  // Close all opened files.
+  if (!list_empty(&cur->filemap)) {
+    close_all_files(cur);
+  }
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
