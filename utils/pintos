@@ -913,17 +913,9 @@ sub get_load_average {
 # Calls setitimer to set a timeout, then execs what was passed to us.
 sub exec_setitimer {
     if (defined $timeout) {
-	if (${"\cV"} ge 5.8.0) {
-	    eval "
-              use Time::HiRes qw(setitimer ITIMER_VIRTUAL);
-              setitimer (ITIMER_VIRTUAL, $timeout, 0);
-            ";
-	} else {
-	    { exec ("setitimer-helper", $timeout, @_); };
-	    exit 1 if !$!{ENOENT};
-	    print STDERR "warning: setitimer-helper is not installed, so ",
-	      "CPU time limit will not be enforced\n";
-	}
+      # betting on nobody not having an ancient perl version
+      use Time::HiRes qw(setitimer ITIMER_VIRTUAL);
+      setitimer (ITIMER_VIRTUAL, $timeout, 0);
     }
     exec (@_);
     exit (1);
