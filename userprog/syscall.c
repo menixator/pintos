@@ -78,10 +78,6 @@ static void syscall_handler(struct intr_frame *frame UNUSED) {
     return;
   }
   }
-  // TODO: remove
-  printf("error: you did not return within your case statement up there. "
-         "Thread is exiting now\n");
-  thread_exit();
 }
 static uint32_t load_param(struct intr_frame *frame, int offset) {
   if (get_user(frame->esp + offset) == -1) {
@@ -345,7 +341,6 @@ void sys_close(int fd) {
 }
 
 pid_t sys_exec(const char *invocation) {
-  // TODO: maybe check the entire buffer?
   if (get_user((const uint8_t *)invocation) == -1) {
     sys_exit(ERROR_EXIT);
   }
@@ -353,7 +348,6 @@ pid_t sys_exec(const char *invocation) {
 }
 
 int sys_wait(pid_t pid) {
-  // TODO: validate invocation
   return process_wait(pid);
 }
 
