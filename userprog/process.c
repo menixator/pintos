@@ -116,6 +116,8 @@ struct process *process_init(tid_t tid) {
 
   process->exit_code = -1;
 
+  process->waited = false;
+
   // Initialize the wait semaphore
   sema_init(&process->wait, 0);
 
@@ -370,8 +372,13 @@ int process_wait(tid_t child_tid) {
     return -1;
   }
 
-  // TODO: make sure that a process is not waiting on twice.
+  if (process->waited) {
+    return -1;
+  }
+
   sema_down(&process->wait);
+
+  process->waited = true;
 
   int exit_code = process->exit_code;
   list_remove(&process->ptr);

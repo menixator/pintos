@@ -17,6 +17,7 @@ struct process {
   enum pload_status_t load_status;
   struct list_elem ptr;
 
+  bool waited;
   int exit_code;
 
   // Sempahore to wait for a process
