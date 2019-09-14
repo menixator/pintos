@@ -209,19 +209,24 @@ size_t ja_size(char *ja, size_t length) {
   return size;
 }
 
+// clang-format off
 /**
  * Builds the stack, with a provided string by adding any required data onto it.
  * The stack is to be formatted like this for an invocation: 'echo one two'
  * // Order does not matter here. These will be referred to by pointers
- * 'echo'                     // argv[0]
- * 'one'                      // argv[1]
- * 'two'                      // argv[2]
- * [ alignment bytes ]        // only if esp  is not a multiple of 4. 0, 1, 2,
- * or 3 bytes 0                          // by convention argv[argc] = 0 argv[2]
- * // pointers to data above argv[1] argv[0] argv                       //
- * pointer to the location right above this line argc return_address // dummy
- * return address. 0 will suffice
+ * 'echo'                           // argv[0]
+ * 'one'                            // argv[1]
+ * 'two'                            // argv[2]
+ * [ n(0/1/2/3) alignment bytes ]   // only if esp is  not a multiple of 4.
+ * 0                                // by convention argv[argc] = 0
+ * argv[2]                          // pointers to data above
+ * argv[1]
+ * argv[0]
+ * argv                             // pointer to the location right above this line
+ * argc
+ * return_address                   // dummy return address. 0 will suffice
  */
+// clang-format on
 bool build_stack(void **esp, char *invocation) {
   size_t argc = ja_init(invocation);
 
