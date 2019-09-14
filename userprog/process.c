@@ -411,6 +411,12 @@ void process_exit(void) {
     }
   }
 
+  // Allow writing to the file that we were executing.
+  if (cur->exec_file != NULL) {
+    file_allow_write(cur->exec_file);
+    file_close(cur->exec_file);
+  }
+
   // Close all opened files.
   if (!list_empty(&cur->filemap)) {
     close_all_files(cur);
@@ -629,7 +635,14 @@ bool load(const char *invocation, void (**eip)(void), void **esp) {
 
 done:
   /* We arrive here whether the load is successful or not. */
-  file_close(file);
+  if (success) {
+    t->exec_file = file;
+    // ROX tests require the executing file to be be read only for the
+    // duration it is running.
+    file_deny_write(file);
+  } else {
+    file_close(file);
+  }
   return success;
 }
 

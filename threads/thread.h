@@ -103,6 +103,9 @@ struct thread {
 
   // List of process* for all the children.
   struct list child_processes;
+
+  // The file that the thread is currently executing.
+  struct file *exec_file;
 #endif
 
   /* Owned by thread.c. */
